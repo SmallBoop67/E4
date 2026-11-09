@@ -4,6 +4,15 @@
   box-sizing: border-box;
 }
 
+:root {
+  --cyan: #5ef2ff;
+  --yellow: #ffe066;
+  --red: #ff4d6d;
+  --white: #e8fdff;
+  --gray: #6f86a8;
+  --def-font: Orbitron, "Trebuchet MS", sans-serif;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -11,7 +20,7 @@ body {
   place-content: center;
   gap: 14px;
   background: radial-gradient(ellipse at 50% 30%, #1a0f3a, #04020c 70%);
-  color: #e8fdff;
+  color: var(--white);
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
@@ -55,21 +64,21 @@ body {
 
 h2 {
   margin: 0 0 4px;
-  font: 600 11px/1 Orbitron, "Trebuchet MS", sans-serif;
+  font: 600 11px/1 var(--def-font);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #6f86a8;
+  color: var(--gray);
 }
 
 output {
   font-size: 22px;
-  color: #5ef2ff;
+  color: var(--cyan);
   text-shadow: 0 0 6px currentColor, 0 0 18px currentColor;
 }
 
 #best {
   font-size: 15px;
-  color: #ffe066;
+  color: var(--yellow);
 }
 
 .pips,
@@ -91,7 +100,7 @@ output {
 }
 
 .cell {
-  color: #ffe066;
+  color: var(--yellow);
 }
 
 .pip.lit,
@@ -108,11 +117,11 @@ output {
   display: none;
   margin: 0;
   padding: 4px 8px;
-  border: 1px solid #ffe066;
+  border: 1px solid var(--yellow);
   border-radius: 10px;
-  color: #ffe066;
+  color: var(--yellow);
   text-align: center;
-  font: 600 11px/1.4 Orbitron, "Trebuchet MS", sans-serif;
+  font: 600 11px/1.4 var(--def-font);
   letter-spacing: 0.2em;
   text-transform: uppercase;
   animation: blink 1.2s steps(2) infinite;
@@ -152,11 +161,11 @@ output {
   align-items: center;
   gap: 10px;
   font-size: 12px;
-  color: #6f86a8;
+  color: var(--gray);
 }
 
 .stop[data-state="cleared"] {
-  color: #5ef2ff;
+  color: var(--cyan);
 }
 
 .stop[data-state="cleared"] .stop-dot {
@@ -164,7 +173,7 @@ output {
 }
 
 .stop[data-state="current"] {
-  color: #ffe066;
+  color: var(--yellow);
   text-shadow: 0 0 6px currentColor, 0 0 18px currentColor;
 }
 
@@ -173,11 +182,11 @@ output {
 }
 
 .stop:last-child {
-  color: #ff4d6d;
+  color: var(--red);
 }
 
 .boss {
-  color: #ff4d6d;
+  color: var(--red);
 }
 
 .boss h2 {
@@ -221,9 +230,9 @@ output {
 }
 
 .banner strong {
-  font: 700 26px/1.1 Orbitron, "Trebuchet MS", sans-serif;
+  font: 700 26px/1.1 var(--def-font);
   letter-spacing: 0.12em;
-  color: #ffe066;
+  color: var(--yellow);
   text-shadow: 0 0 6px currentColor, 0 0 18px currentColor;
 }
 
@@ -231,7 +240,7 @@ output {
   font-size: 13px;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: #e8fdff;
+  color: var(--white);
 }
 
 .caption {
@@ -239,7 +248,7 @@ output {
   inset: auto 8% 6%;
   margin: 0;
   padding: 10px 14px;
-  border-left: 3px solid #5ef2ff;
+  border-left: 3px solid var(--cyan);
   background: rgba(4, 2, 12, 0.75);
   font-size: 14px;
   line-height: 1.5;
@@ -257,7 +266,7 @@ output {
   margin: 0;
   text-align: center;
   font-size: 12px;
-  color: #6f86a8;
+  color: var(--gray);
 }
 
 /* Impacts shake the whole cabinet; the panels keep their tilt while shaking. */
