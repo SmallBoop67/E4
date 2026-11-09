@@ -278,6 +278,24 @@ output {
   animation: quake 520ms linear;
 }
 
+.pip {
+  width: 22px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: currentColor;
+}
+
+.cell {
+  flex: 1;
+  border-radius: 2px;
+}
+
+.stop-dot {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
 @keyframes shudder {
   25% {
     transform: translate(-3px, 1px) rotateZ(-0.4deg);
