@@ -10,6 +10,7 @@ import {
   type EnemyKind,
   LANCER,
   Player,
+  type PowerKind,
   PowerUp,
   type Spawn,
   TURRET,
@@ -20,17 +21,22 @@ import type { LaunchOptions } from "../main.ts";
 import { AutoPilot, KeyboardPilot, type Pilot } from "../pilots.ts";
 import { Rng } from "../rng.ts";
 import { play } from "../sounds.ts";
+import {
+  type Kind,
+  place,
+  SECTOR_GRACE_TICKS,
+  SECTORS,
+  type Wave,
+} from "../route.ts";
 import { TINTS } from "../textures.ts";
 import { Backdrop } from "./backdrop.ts";
-import type { CutsceneData } from "./cutscene.ts";
+import type { CutsceneData, Run } from "./cutscene.ts";
 import { fadeIn, fadeTo } from "./fade.ts";
 
 const TICK_MS = 1000 / 60;
 const START_LIVES = 3;
 const BOSS_WARNING_TICKS = 200;
 const VICTORY_TICKS = 180;
-
-type Kind = "drone" | "dart" | "lancer" | "turret";
 
 /** information about each enemy */
 const KINDS: Record<Kind, EnemyKind> = {
@@ -40,102 +46,16 @@ const KINDS: Record<Kind, EnemyKind> = {
   turret: TURRET,
 };
 
-type Formation = "line" | "vee" | "column" | "pincer";
-
-/** x is the formation's center (default 240) */
-interface Wave {
-  at: number;
-  kind: Kind;
-  count: number;
-  formation: Formation;
-  x?: number;
+function newRun(): Run {
+  return {
+    score: 0,
+    lives: START_LIVES,
+    kills: 0,
+    hits: 0,
+    continues: 0,
+    bossDefeated: false,
+  };
 }
-
-interface Sector {
-  name: string;
-  subtitle: string;
-  length: number;
-  waves: Wave[];
-}
-
-/** ticks keep track of time and start the next wave when time */
-const SECTOR_GRACE_TICKS = 240;
-const WARDEN_STOP = "The Warden";
-
-const SECTORS: readonly Sector[] = [
-  {
-    name: "Outer Drift",
-    subtitle: "Scouts ahead",
-    length: 1560,
-    waves: [
-      { at: 60, kind: "drone", count: 4, formation: "line" },
-      { at: 360, kind: "drone", count: 5, formation: "vee", x: 168 },
-      { at: 660, kind: "drone", count: 5, formation: "vee", x: 312 },
-      { at: 960, kind: "drone", count: 6, formation: "line" },
-      { at: 1200, kind: "drone", count: 4, formation: "column", x: 120 },
-      { at: 1260, kind: "drone", count: 4, formation: "column", x: 360 },
-    ],
-  },
-  {
-    name: "Shatter Belt",
-    subtitle: "Divers incoming",
-    length: 1800,
-    waves: [
-      { at: 60, kind: "drone", count: 6, formation: "vee" },
-      { at: 300, kind: "dart", count: 4, formation: "line" },
-      { at: 600, kind: "dart", count: 5, formation: "column", x: 144 },
-      { at: 720, kind: "dart", count: 5, formation: "column", x: 336 },
-      { at: 1020, kind: "drone", count: 7, formation: "line" },
-      { at: 1140, kind: "dart", count: 5, formation: "vee" },
-      { at: 1440, kind: "dart", count: 6, formation: "line" },
-    ],
-  },
-  {
-    name: "Gun Lanes",
-    subtitle: "Turrets online",
-    length: 1920,
-    waves: [
-      { at: 60, kind: "turret", count: 1, formation: "line" },
-      { at: 240, kind: "drone", count: 6, formation: "vee" },
-      { at: 540, kind: "turret", count: 2, formation: "line" },
-      { at: 840, kind: "dart", count: 6, formation: "column" },
-      { at: 1080, kind: "turret", count: 2, formation: "line" },
-      { at: 1140, kind: "drone", count: 6, formation: "line" },
-      { at: 1500, kind: "turret", count: 3, formation: "line" },
-    ],
-  },
-  {
-    name: "Lancer Gate",
-    subtitle: "Crossfire",
-    length: 1920,
-    waves: [
-      { at: 60, kind: "lancer", count: 4, formation: "pincer" },
-      { at: 360, kind: "dart", count: 6, formation: "vee" },
-      { at: 600, kind: "lancer", count: 6, formation: "pincer" },
-      { at: 780, kind: "turret", count: 2, formation: "line" },
-      { at: 1140, kind: "lancer", count: 6, formation: "pincer" },
-      { at: 1260, kind: "drone", count: 8, formation: "vee" },
-      { at: 1560, kind: "dart", count: 8, formation: "line" },
-    ],
-  },
-  {
-    name: "Last Approach",
-    subtitle: "Everything they have",
-    length: 2040,
-    waves: [
-      { at: 60, kind: "turret", count: 3, formation: "line" },
-      { at: 180, kind: "lancer", count: 6, formation: "pincer" },
-      { at: 540, kind: "dart", count: 6, formation: "column", x: 120 },
-      { at: 540, kind: "dart", count: 6, formation: "column", x: 360 },
-      { at: 900, kind: "drone", count: 9, formation: "vee" },
-      { at: 1020, kind: "turret", count: 2, formation: "line" },
-      { at: 1320, kind: "lancer", count: 8, formation: "pincer" },
-      { at: 1560, kind: "dart", count: 8, formation: "vee" },
-    ],
-  },
-];
-
-export const ROUTE = [...SECTORS.map((s) => s.name), WARDEN_STOP];
 
 /**
  * One run of the game. Keyboard play and the self-play demo share this scene;
@@ -146,7 +66,7 @@ export class PlayScene extends Phaser.Scene implements Arena {
   player!: Player;
   now = 0;
   private attract = false;
-  private run;
+  private run: Run = newRun();
   private pilot!: Pilot;
   private backdrop!: Backdrop;
   private enemies: Enemy[] = [];
@@ -175,13 +95,7 @@ export class PlayScene extends Phaser.Scene implements Arena {
     this.rng = new Rng(this.options.seed);
     this.now = 0;
     this.carry = 0;
-    this.run = {
-      score: 0,
-      lives: START_LIVES,
-      kills: 0,
-      hits: 0,
-      continues: 0,
-    };
+    this.run = newRun();
     this.enemies = [];
     this.shots = [];
     this.bullets = [];
@@ -344,28 +258,8 @@ export class PlayScene extends Phaser.Scene implements Arena {
   /** Spawns whichever ships of this wave are due on tick t. */
   private spawnWave(t: number, wave: Wave): void {
     const { at, kind, count, formation, x: cx = 240 } = wave;
-    const mid = (count - 1) / 2;
     for (let i = 0; i < count; i++) {
-      let x = cx;
-      let y = -30;
-      let delay = 0;
-      switch (formation) {
-        case "line":
-          x = cx + (i - mid) * 64;
-          break;
-        case "vee":
-          x = cx + (i - mid) * 44;
-          delay = Math.abs(i - mid) * 10;
-          break;
-        case "column":
-          delay = i * 24;
-          break;
-        case "pincer":
-          x = i % 2 === 0 ? -30 : 510;
-          y = 70 + Math.floor(i / 2) * 50;
-          delay = Math.floor(i / 2) * 30;
-          break;
-      }
+      const { x, y, delay } = place(formation, i, count, cx);
       if (t === at + delay) {
         this.spawn(kind, { x, y, side: i % 2 === 0 ? 1 : -1 });
       }
@@ -426,7 +320,7 @@ export class PlayScene extends Phaser.Scene implements Arena {
     }
     this.explode(enemy.x, enemy.y, 1);
     if (this.rng.chance(enemy.kind.dropChance)) {
-      const kind = this.player.power < 3 && this.rng.chance(0.5)
+      const kind: PowerKind = this.player.power < 3 && this.rng.chance(0.5)
         ? "spread"
         : "shield";
       this.pickups.push(new PowerUp(this, enemy.x, enemy.y, kind));
@@ -435,7 +329,7 @@ export class PlayScene extends Phaser.Scene implements Arena {
 
   private hurtPlayer(): void {
     // After the Warden falls, nothing can hurt the ship during the victory lap.
-    if (this.run.bossDefeted || this.gameOver || !this.player.vulnerable) {
+    if (this.run.bossDefeated || this.gameOver || !this.player.vulnerable) {
       return;
     }
     this.run.hits++;
@@ -468,7 +362,7 @@ export class PlayScene extends Phaser.Scene implements Arena {
     this.victoryAt = this.now + VICTORY_TICKS;
     this.hud.setBoss(0);
     this.hud.announce("WARDEN DOWN", "The lanes are open");
-    console.log("victory lap: ship protected =", this.run.bossDefeted);
+    console.log("victory lap: ship protected =", this.run.bossDefeated);
     // The Warden's fall takes its bullets and escorts with it (no score).
     for (const bullet of this.bullets) {
       this.burst(bullet.x, bullet.y, 2, TINTS.spark);

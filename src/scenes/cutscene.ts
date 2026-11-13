@@ -16,9 +16,20 @@ const WARP_AT = 9;
 const CREDITS_AT = 11;
 const RETURN_AT = 18;
 
+/** The run's running totals: the play scene keeps them, the cutscene reads them. */
+export interface Run {
+  score: number;
+  lives: number;
+  kills: number;
+  hits: number;
+  continues: number;
+  /** Set when the Warden falls; the ship is untouchable during the victory lap. */
+  bossDefeated: boolean;
+}
+
 /** What the play scene hands over when the Warden falls. */
 export interface CutsceneData {
-  run: { score: number; kills: number; hits: number; continues: number };
+  run: Run;
   /** True when the run that just ended was the self-play demo. */
   afterDemo: boolean;
 }

@@ -84,6 +84,9 @@ export interface Controls {
   fire: boolean;
 }
 
+/** The two kinds of power-up; also their texture keys. */
+export type PowerKind = "spread" | "shield";
+
 export const MAX_POWER = 3;
 const SPEED = 4.2;
 const RESPAWN_GRACE = 120;
@@ -137,9 +140,15 @@ export class Player extends Actor {
     return true;
   }
 
-  collect(kind: string): void {
-    if (kind === "spread") this.power = Math.min(MAX_POWER, this.power + 1);
-    if (kind === "shield") this.shielded = true;
+  collect(kind: PowerKind): void {
+    switch (kind) {
+      case "spread":
+        this.power = Math.min(MAX_POWER, this.power + 1);
+        break;
+      case "shield":
+        this.shielded = true;
+        break;
+    }
   }
 
   override destroy(fromScene?: boolean): void {
@@ -384,8 +393,7 @@ export class PowerUp extends Actor {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    /** "spread" or "shield"; also the texture key. */
-    readonly kind: string,
+    readonly kind: PowerKind,
   ) {
     super(scene, x, y, kind, 14);
   }
