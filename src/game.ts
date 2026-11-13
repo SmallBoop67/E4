@@ -2,22 +2,20 @@ import Phaser from "phaser";
 import {
   type Actor,
   type Arena,
+  Boss,
   Bullet,
-  HEIGHT,
-  Player,
-  WIDTH,
-} from "./actors.ts";
-import {
   DART,
   DRONE,
+  Enemy,
   type EnemyKind,
+  HEIGHT,
   LANCER,
-  ShmupBoss,
-  ShmupPowerUp,
-  ShmupPrefabSprite,
+  Player,
+  PowerUp,
   type Spawn,
   TURRET,
-} from "./prefab.ts";
+  WIDTH,
+} from "./actors.ts";
 import type { Hud } from "./hud.ts";
 import type { LaunchOptions } from "./main.ts";
 import { AutoPilot, KeyboardPilot, type Pilot } from "./pilots.ts";
@@ -160,13 +158,13 @@ export class GameScene extends Phaser.Scene implements Arena {
   private run;
   private pilot!: Pilot;
   private backdrop!: Backdrop;
-  private enemies: ShmupPrefabSprite[] = [];
+  private enemies: Enemy[] = [];
   private shots: Bullet[] = [];
   private bullets: Bullet[] = [];
-  private pickups: ShmupPowerUp[] = [];
+  private pickups: PowerUp[] = [];
   private sector = -1;
   private sectorStart = 0;
-  private boss: ShmupBoss | null = null;
+  private boss: Boss | null = null;
   private bossDueAt = 0;
   private victoryAt = 0;
   private gameOver = false;
@@ -545,12 +543,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private spawn(kind: Kind, at: Spawn): void {
-    this.enemies.push(new ShmupPrefabSprite(this, KINDS[kind], at));
+    this.enemies.push(new Enemy(this, KINDS[kind], at));
   }
 
   private startBoss(): void {
     this.bossDueAt = 0;
-    this.boss = new ShmupBoss(this);
+    this.boss = new Boss(this);
     this.boss.enableFilters();
     this.boss.filters?.internal.addGlow(TINTS.boss, 4, 0, 1);
     this.enemies.push(this.boss);
@@ -581,14 +579,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     for (const pickup of this.pickups) {
       if (pickup.active && pickup.touches(this.player)) {
         pickup.setActive(false);
-        this.player.collect(pickup.kind.name);
+        this.player.collect(pickup.kind);
         play(this, "pickup", 0.6);
         this.burst(pickup.x, pickup.y, 14, TINTS.player);
       }
     }
   }
 
-  private destroyEnemy(enemy: ShmupPrefabSprite): void {
+  private destroyEnemy(enemy: Enemy): void {
     enemy.setActive(false);
     this.run.score += enemy.kind.score;
     this.run.kills++;
@@ -601,7 +599,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const kind = this.player.power < 3 && this.rng.chance(0.5)
         ? "spread"
         : "shield";
-      this.pickups.push(new ShmupPowerUp(this, enemy.x, enemy.y, kind));
+      this.pickups.push(new PowerUp(this, enemy.x, enemy.y, kind));
     }
   }
 
@@ -640,7 +638,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
   }
 
-  private defeatBoss(boss: ShmupBoss): void {
+  private defeatBoss(boss: Boss): void {
     this.run.bossDefeated = true;
     this.victoryAt = this.now + VICTORY_TICKS;
     this.hud.setBoss(0);
